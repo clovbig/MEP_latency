@@ -13,7 +13,7 @@ import preprocessing as pp
 
 
 if __name__ == '__main__':
-    data_dir = os.path.join(os.path.join("data"))
+    data_dir = "data"
     fs = 5000  # sampling frequency, Hz
 
     df_meps = pd.DataFrame(columns=['sub_id', 'trial', 'mep'])  # initialize dataframe
@@ -25,6 +25,7 @@ if __name__ == '__main__':
         try:
             epochs_emg = np.load(os.path.join(data_dir, sub_id, 'EMG_data_SP.npy'))     # load data
         except OSError:
+            print('OSerror')
             continue
 
         # Pre-process EMG

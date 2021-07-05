@@ -99,7 +99,7 @@ class Epoch:
 
         return latency
 
-    def garvey_revised(self):
+    def latency_method_garvey_revised(self):
         # Garvey et al., 2001 proposes a method for MEP onset during active contraction. This is considered based on the
         # mean consecutive difference (MCD), which describes the variation of the pre-stimulus EMG (i.e. 100ms before
         # pulse). Boundaries are EMG +- MCDx2.66. MEP onset is defined as "the first consecutive data points to fall
@@ -113,15 +113,18 @@ class Epoch:
         idx_low = np.where(self.v <= thr_low)[0]
         # idx_high = np.where(self.v >= thr_high)[0]
 
-        chunks_low = np.split(idx_low, (np.add(np.where(np.diff(idx_low) > 4))))
-        # chunks_high = np.split(idx_high, (np.add(np.where(np.diff(idx_high) > 4))))
+        consecutive_samples = np.where(np.diff(idx_low) == 1)[0]
         try:
+            chunks_low = np.split(idx_low, (np.add(np.where(np.diff(consecutive_samples) > 1), 1)).tolist()[0])
+            # chunks_high = np.split(idx_high, (np.add(np.where(np.diff(idx_high) > 4))))
             latency = chunks_low[0][0]
         except IndexError:
             latency = 'nan'
             print('Garvey method - did not find the beginning of MEP')
 
-    def daskalakis(self):
+        return latency
+
+    def latency_method_daskalakis(self):
         # The MEP onset was defined as the last crossing of the mean pre-stimulus EMG level before the point of maximum
         # deflection. Pre-stimulus window: 40ms
         baseline_40 = pp.divide_in_epochs(self.baseline, self.fs, self.trigger, -0.04, -0.002)

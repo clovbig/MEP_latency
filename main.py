@@ -1,7 +1,7 @@
 """
 Author: Claudia Bigoni
 Date: 23.06.2021
-Description: Run comparison of automatic latency detectiton, with possible addition of comparison to ground truth (i.e.,
+Description: Run comparison of automatic latency detection, with possible addition of comparison to ground truth (i.e.,
 latencies manually detected using the software).
 """
 import os
@@ -18,7 +18,8 @@ if __name__ == '__main__':
 
     df_gt = pd.read_csv('')[['sub_id', 'trial', 'lat']]     # path to the ground truth file
     # dataframe to save results
-    df = pd.DataFrame(columns=['sub_id', 'trial', 'lat_bigoni', 'lat_hamada1', 'lat_hamada2', 'lat_huang', 'gt'])
+    df = pd.DataFrame(columns=['sub_id', 'trial', 'lat_bigoni', 'lat_hamada1', 'lat_hamada2', 'lat_huang',
+                               'lat_garvey', 'lat_daskalakis', 'gt'])
     df_row = 0
     subjects = sorted([i for i in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, i))])
     for sub_id in subjects:
@@ -43,8 +44,8 @@ if __name__ == '__main__':
         idx_remove_corr = np.argwhere(np.asarray(remove_corr) == 0).flatten()
         idx_remove_small_mep = np.argwhere(np.asarray(remove_small_mep) == 0).flatten()
 
-        # b. Trials are removed based on baseline (i.e., 25 ms before the pulse) and remove trials where at least half of
-        # the baseline power is above a threshold (Hussain et al., 2019)
+        # b. Trials are removed based on baseline (i.e., 25 ms before the pulse) and remove trials where at least half
+        # of the baseline power is above a threshold (Hussain et al., 2019)
         epochs_baseline = pp.divide_in_epochs(epochs_emg, fs, 1, -0.025, -0.005)    # Divide in epochs
         remove_baseline = []
         for epoch in epochs_baseline.T:
@@ -53,13 +54,19 @@ if __name__ == '__main__':
             remove_baseline.append(pp.half_signal_bigger_than(abs(epoch), thr_power_baseline))
         idx_remove_baseline = np.argwhere(remove_baseline == 1).flatten()
 
+        # epochs_baseline_ham_gar = pp.divide_in_epochs(epochs_emg, fs, 1, -0.100, -0.001)
+        # epochs_baseline_hu = pp.divide_in_epochs(epochs_emg, fs, 1, -0.200, -0.001)
+        # epochs_baseline_das = pp.divide_in_epochs(epochs_emg, fs, 1, -0.04, -0.001)
+
         # 2. Remove trials containing artifacts in either mep or baseline emg
         idx_remove = set(list(idx_remove_baseline) + list(idx_remove_corr))
         num_trials = epochs_emg.shape[1]
         idx_keep = np.setdiff1d(range(0, num_trials), list(idx_remove))
 
         # Keep only good trials
-        epochs_baseline = epochs_baseline[:, idx_keep]
+        epochs_baseline_ham_gar = epochs_baseline_ham_gar[:, idx_keep]
+        epochs_baseline_hu = epochs_baseline_hu[:, idx_keep]
+        epochs_baseline_das = epochs_baseline_das[:, idx_keep]
         epochs_mep = epochs_mep[:, idx_keep]
         epochs_emg = epochs_emg[:, idx_keep]
         ptp = ptp[idx_keep]
@@ -71,7 +78,9 @@ if __name__ == '__main__':
             latency_bigoni = epoch.latency_bigoni_method()
             latency_hamada1 = epoch.latency_method_hamada_1(baseline_hamada)
             latency_hamada2 = epoch.latency_method_hamada_2()
+            latency_garvey = epoch.latency_method_garvey_revised()
             latency_huang = epoch.latency_method_huang()
+            latency_daskalakis = epoch.latency_method_daskalakis()
 
             # Ground truth data
             latency_gt = (df_gt[((df_gt['sub_id'] == sub_id) & (df_gt['trial'] == idx_e))]['lat']).values[0]
@@ -79,7 +88,8 @@ if __name__ == '__main__':
             # Save results to dataframe
             df.loc[df_row] = pd.Series({'sub_id': sub_id, 'trial': idx_e, 'lat_bigoni': latency_bigoni,
                                         'lat_hamada1': latency_hamada1, 'lat_hamada2': latency_hamada2,
-                                        'lat_huang': latency_huang, 'gt': latency_gt})
+                                        'lat_huang': latency_huang, 'lat_garvey': latency_garvey,
+                                        'lat_daskalakis': latency_daskalakis, 'gt': latency_gt})
             df_row += 1
 
     # Check out some qualitative comparisons
